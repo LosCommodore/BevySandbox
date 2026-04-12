@@ -17,6 +17,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     commands.spawn(Camera2d);
 
@@ -48,6 +49,20 @@ fn setup(
             height,
         },
     ));
+
+    commands.spawn((
+        Sprite {
+            custom_size: Some(Vec2::new(100., 400.)),
+            image: asset_server.load("bricksx64.png"),
+            image_mode: SpriteImageMode::Tiled {
+                tile_x: true,
+                tile_y: true,
+                stretch_value: 1.0,
+            },
+            ..default()
+        },
+        Transform::from_xyz(-200.0, 0.0, 1.0),
+    ));
 }
 
 fn fixed_update(mut query: Query<(&mut Transform, &mut Boulder)>) {
@@ -64,7 +79,7 @@ fn fixed_update(mut query: Query<(&mut Transform, &mut Boulder)>) {
     }
 }
 
-fn check_collisions(query: Query<(&Transform, &Boulder)>) {
+fn check_collisions(mut query: Query<(&Transform, &mut Boulder)>) {
     fn bounding(t: &Transform, boulder: &Boulder) -> Aabb2d {
         let top_left = Vec2::new(
             t.translation.x - boulder.width / 2.,
@@ -79,13 +94,22 @@ fn check_collisions(query: Query<(&Transform, &Boulder)>) {
             max: bottom_right,
         }
     }
-
-    for [(transform, boulder), (transform2, boulder2)] in &mut query.iter_combinations() {
-        let one = bounding(transform, boulder);
-        let two = bounding(transform2, boulder2);
-        if one.intersects(&two) {
-            info!("intersection")
+    let mut iter = query.iter_combinations_mut();
+    while let Some([(transform, mut boulder), (transform2, mut boulder2)]) = iter.fetch_next() {
+        let one = bounding(transform, &boulder);
+        let two = bounding(transform2, &boulder2);
+        if !one.intersects(&two) {
+            continue;
         }
+        let m1 = boulder.mass;
+        let m2 = boulder2.mass;
+        let v1 = boulder.velocity;
+        let v2 = boulder2.velocity;
+
+        let new_v1 = (m1 * v1 + m2 * (2. * v2 - v1)) / (m1 + m2);
+        let new_v2 = (m2 * v2 + m1 * (2. * v1 - v2)) / (m1 + m2);
+        boulder.velocity = new_v1;
+        boulder2.velocity = new_v2;
     }
 }
 
