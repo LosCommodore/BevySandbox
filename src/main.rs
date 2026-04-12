@@ -1,4 +1,5 @@
 use bevy::{
+    color::palettes::tailwind::SLATE_50,
     math::bounding::{Aabb2d, IntersectsVolume},
     prelude::*,
     sprite_render::Wireframe2dPlugin,
@@ -17,8 +18,17 @@ struct Impulse {
     velocity: f32,
 }
 
+#[derive(Resource, Default)]
+struct CollisionCounter(usize);
+
 #[derive(Component)]
 struct Collidable();
+
+#[derive(Component)]
+struct CollisionTextMarker();
+
+#[derive(Event)]
+struct CollionsHappended;
 
 fn setup(
     mut commands: Commands,
@@ -31,10 +41,8 @@ fn setup(
     let width = 50.;
     let height = 100.;
 
-    let my_shape = meshes.add(Rectangle::new(width, height));
-
     commands.spawn((
-        Mesh2d(my_shape.clone()),
+        Mesh2d(meshes.add(Rectangle::new(width, height))),
         MeshMaterial2d(materials.add(Color::linear_rgb(255., 0., 0.))),
         Transform::from_xyz(0.0, 0.0, 0.0),
         RectShape { width, height },
@@ -46,13 +54,13 @@ fn setup(
     ));
 
     commands.spawn((
-        Mesh2d(my_shape),
+        Mesh2d(meshes.add(Rectangle::new(width, height))),
         MeshMaterial2d(materials.add(Color::linear_rgb(0., 255., 0.))),
         Transform::from_xyz(300.0, 0.0, 0.0),
         RectShape { width, height },
         Impulse {
             velocity: -1.,
-            mass: 10.,
+            mass: 100.,
         },
         Collidable(),
     ));
@@ -78,23 +86,34 @@ fn setup(
         Transform::from_xyz(-300.0, 0.0, 1.0),
         Collidable(),
     ));
+
+    commands.spawn((
+        Node {
+            width: percent(100.),
+            margin: px(20.).top(),
+            ..default()
+        },
+        Text::new("0"),
+        TextLayout::new_with_justify(Justify::Center),
+        TextFont {
+            font_size: 33.0,
+            ..default()
+        },
+        TextColor(SLATE_50.into()),
+        CollisionTextMarker(),
+    ));
 }
 
 fn fixed_update(mut query: Query<(&mut Transform, &mut Impulse)>) {
-    for (mut transform, mut impulse) in &mut query {
+    for (mut transform, impulse) in &mut query {
         transform.translation.x += impulse.velocity;
-
-        /*
-        if transform.translation.x > 200. {
-            transform.translation.x = 200.;
-            impulse.velocity *= -1.;
-        }
-        */
     }
 }
 
 fn check_collisions(
+    mut commands: Commands,
     mut query: Query<(&Transform, &RectShape, Option<&mut Impulse>), With<Collidable>>,
+    mut counter: ResMut<CollisionCounter>,
 ) {
     fn bounding(t: &Transform, shape: &RectShape) -> Aabb2d {
         let min = Vec2::new(
@@ -117,6 +136,9 @@ fn check_collisions(
         if !one.intersects(&two) {
             continue;
         }
+        counter.0 += 1;
+        commands.trigger(CollionsHappended);
+
         match (impulse, impulse2) {
             (Some(mut impulse), Some(mut impulse2)) => {
                 let m1 = impulse.mass;
@@ -142,11 +164,25 @@ fn check_collisions(
     }
 }
 
+fn collision_text_update(
+    mut query: Query<&mut Text, With<CollisionTextMarker>>,
+    counter: Res<CollisionCounter>,
+) {
+    for mut span in &mut query {
+        span.0 = counter.0.to_string();
+    }
+}
+
 fn main() {
     App::new()
+        .init_resource::<CollisionCounter>()
         .add_plugins(DefaultPlugins)
         .add_plugins(Wireframe2dPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, (fixed_update, check_collisions).chain())
+        .add_systems(
+            Update,
+            collision_text_update.run_if(resource_changed::<CollisionCounter>),
+        )
         .run();
 }
