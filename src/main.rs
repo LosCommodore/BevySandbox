@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::{
     color::palettes::tailwind::SLATE_50,
     math::bounding::{Aabb2d, IntersectsVolume},
@@ -176,6 +178,9 @@ fn collision_text_update(
 fn main() {
     App::new()
         .init_resource::<CollisionCounter>()
+        .insert_resource(Time::<Fixed>::from_duration(Duration::from_secs_f64(
+            1.0 / 100.0,
+        )))
         .add_plugins(DefaultPlugins)
         .add_plugins(Wireframe2dPlugin::default())
         .add_systems(Startup, setup)
