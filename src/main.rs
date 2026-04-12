@@ -5,7 +5,7 @@ use bevy::{
 };
 
 #[derive(Component, Default)]
-#[require(Transform, Impulse)]
+#[require(Transform)]
 struct RectShape {
     width: f32,
     height: f32,
@@ -39,7 +39,7 @@ fn setup(
         Transform::from_xyz(0.0, 0.0, 0.0),
         RectShape { width, height },
         Impulse {
-            velocity: 10.,
+            velocity: 0.,
             mass: 1.,
         },
         Collidable(),
@@ -48,11 +48,11 @@ fn setup(
     commands.spawn((
         Mesh2d(my_shape),
         MeshMaterial2d(materials.add(Color::linear_rgb(0., 255., 0.))),
-        Transform::from_xyz(100.0, 0.0, 0.0),
+        Transform::from_xyz(300.0, 0.0, 0.0),
         RectShape { width, height },
         Impulse {
-            velocity: 10.,
-            mass: 1.,
+            velocity: -1.,
+            mass: 10.,
         },
         Collidable(),
     ));
@@ -75,7 +75,7 @@ fn setup(
             },
             ..default()
         },
-        Transform::from_xyz(-200.0, 0.0, 1.0),
+        Transform::from_xyz(-300.0, 0.0, 1.0),
         Collidable(),
     ));
 }
@@ -83,41 +83,34 @@ fn setup(
 fn fixed_update(mut query: Query<(&mut Transform, &mut Impulse)>) {
     for (mut transform, mut impulse) in &mut query {
         transform.translation.x += impulse.velocity;
-        if transform.translation.x < -100. {
-            impulse.velocity *= -1.;
-            transform.translation.x = -99.;
-        }
+
+        /*
         if transform.translation.x > 200. {
             transform.translation.x = 200.;
             impulse.velocity *= -1.;
         }
+        */
     }
 }
 
 fn check_collisions(
     mut query: Query<(&Transform, &RectShape, Option<&mut Impulse>), With<Collidable>>,
 ) {
-    fn bounding(t: &Transform, boulder: &RectShape) -> Aabb2d {
-        let top_left = Vec2::new(
-            t.translation.x - boulder.width / 2.,
-            t.translation.y + boulder.height / 2.,
+    fn bounding(t: &Transform, shape: &RectShape) -> Aabb2d {
+        let min = Vec2::new(
+            t.translation.x - shape.width / 2.,
+            t.translation.y - shape.height / 2.,
         );
-        let bottom_right = Vec2::new(
-            t.translation.x + boulder.width / 2.,
-            t.translation.y + boulder.height / 2.,
+        let max = Vec2::new(
+            t.translation.x + shape.width / 2.,
+            t.translation.y + shape.height / 2.,
         );
-        Aabb2d {
-            min: top_left,
-            max: bottom_right,
-        }
+        Aabb2d { min, max }
     }
+
     let mut iter = query.iter_combinations_mut();
-    while let Some(
-        [
-            (transform, shape, mut impulse),
-            (transform2, shape2, mut impulse2),
-        ],
-    ) = iter.fetch_next()
+    while let Some([(transform, shape, impulse), (transform2, shape2, impulse2)]) =
+        iter.fetch_next()
     {
         let one = bounding(transform, &shape);
         let two = bounding(transform2, &shape2);
@@ -136,9 +129,14 @@ fn check_collisions(
                 impulse.velocity = new_v1;
                 impulse2.velocity = new_v2;
             }
-            (Some(mut impulse), None) | (None, Some(mut impulse)) => {
+
+            (Some(mut impulse), None) => {
                 impulse.velocity *= -1.;
             }
+            (None, Some(mut impulse)) => {
+                impulse.velocity *= -1.;
+            }
+
             _ => (),
         }
     }
