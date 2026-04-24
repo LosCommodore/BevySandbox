@@ -1,11 +1,15 @@
 use std::time::Duration;
 
+//use anyhow::Result;
 use bevy::{
     color::palettes::tailwind::SLATE_50,
     math::bounding::{Aabb2d, IntersectsVolume},
     prelude::*,
     sprite_render::Wireframe2dPlugin,
 };
+use bevy_egui::{EguiContexts, egui};
+use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
+use egui_plot::{Line, Plot, PlotPoints};
 
 #[derive(Component, Default)]
 #[require(Transform)]
@@ -32,6 +36,23 @@ struct CollisionTextMarker();
 #[derive(Event)]
 struct CollionsHappended;
 
+fn plot_system(mut contexts: EguiContexts) -> Result<()> {
+    egui::Window::new("Plot").show(contexts.ctx_mut()?, |ui| {
+        let sin: PlotPoints = (0..1000)
+            .map(|i| {
+                let x = i as f64 * 0.01;
+                [x, x.sin()]
+            })
+            .collect();
+
+        let line = Line::new("my_line", sin);
+
+        Plot::new("plot")
+            .view_aspect(2.0)
+            .show(ui, |plot_ui| plot_ui.line(line));
+    });
+    Ok(())
+}
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -62,7 +83,7 @@ fn setup(
         RectShape { width, height },
         Impulse {
             velocity: -1.,
-            mass: 100.,
+            mass: 1.,
         },
         Collidable(),
     ));
@@ -166,6 +187,13 @@ fn check_collisions(
     }
 }
 
+fn ui_example_system(mut contexts: EguiContexts) -> Result<()> {
+    egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
+        ui.label("world");
+    });
+    Ok(())
+}
+
 fn collision_text_update(
     mut query: Query<&mut Text, With<CollisionTextMarker>>,
     counter: Res<CollisionCounter>,
@@ -182,9 +210,11 @@ fn main() {
             1.0 / 100.0,
         )))
         .add_plugins(DefaultPlugins)
+        .add_plugins(EguiPlugin::default())
         .add_plugins(Wireframe2dPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, (fixed_update, check_collisions).chain())
+        .add_systems(EguiPrimaryContextPass, ui_example_system)
         .add_systems(
             Update,
             collision_text_update.run_if(resource_changed::<CollisionCounter>),

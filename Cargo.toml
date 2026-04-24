@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.102"
 bevy = { version = "0.18.1", features = ["dynamic_linking"] }
+bevy_egui = "0.39.1"
+egui_plot = "0.34"                                            # Diese Version ist kompatibel mit egui 0.33
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
