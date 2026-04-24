@@ -36,23 +36,6 @@ struct CollisionTextMarker();
 #[derive(Event)]
 struct CollionsHappended;
 
-fn plot_system(mut contexts: EguiContexts) -> Result<()> {
-    egui::Window::new("Plot").show(contexts.ctx_mut()?, |ui| {
-        let sin: PlotPoints = (0..1000)
-            .map(|i| {
-                let x = i as f64 * 0.01;
-                [x, x.sin()]
-            })
-            .collect();
-
-        let line = Line::new("my_line", sin);
-
-        Plot::new("plot")
-            .view_aspect(2.0)
-            .show(ui, |plot_ui| plot_ui.line(line));
-    });
-    Ok(())
-}
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -189,7 +172,22 @@ fn check_collisions(
 
 fn ui_example_system(mut contexts: EguiContexts) -> Result<()> {
     egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
+        // Beispiel-Daten generieren
         ui.label("world");
+
+        let n = 128;
+        let line_points: PlotPoints = (0..n)
+            .map(|i| {
+                let x = i as f64 * 0.1;
+                [x, x.sin()]
+            })
+            .collect();
+
+        // Plot Widget anzeigen
+        Plot::new("my_plot").view_aspect(2.0).show(ui, |plot_ui| {
+            plot_ui.line(Line::new("my_line", line_points));
+        });
+        //ui.label("world");
     });
     Ok(())
 }
