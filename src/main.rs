@@ -11,6 +11,11 @@ use bevy_egui::{EguiContexts, egui};
 use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 use egui_plot::{Line, Plot, PlotPoints};
 
+#[derive(Default)]
+struct MyValue {
+    v: f64,
+}
+
 #[derive(Component, Default)]
 #[require(Transform)]
 struct RectShape {
@@ -170,10 +175,11 @@ fn check_collisions(
     }
 }
 
-fn ui_example_system(mut contexts: EguiContexts) -> Result<()> {
+fn ui_example_system(mut contexts: EguiContexts, mut local: Local<MyValue>) -> Result<()> {
     egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
         // Beispiel-Daten generieren
         ui.label("world");
+        ui.add(egui::widgets::DragValue::new(&mut local.v));
 
         let n = 128;
         let line_points: PlotPoints = (0..n)
