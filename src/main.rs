@@ -51,32 +51,39 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
+    mut event_history: ResMut<EventHistory>,
 ) {
     commands.spawn(Camera2d);
 
     let width = 50.;
     let height = 100.;
 
+    let v_big = 0.;
+    let x_big = 0.;
+
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(width, height))),
         MeshMaterial2d(materials.add(Color::linear_rgb(255., 0., 0.))),
-        Transform::from_xyz(0.0, 0.0, 0.0),
+        Transform::from_xyz(x_big, 0.0, 0.0),
         RectShape { width, height },
         Impulse {
-            velocity: 0.,
+            velocity: v_big,
             mass: 1.,
         },
         SmallBlock,
         Collidable(),
     ));
 
+    let v_small = -1.;
+    let x_small = 300.;
+
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(width, height))),
         MeshMaterial2d(materials.add(Color::linear_rgb(0., 255., 0.))),
-        Transform::from_xyz(300.0, 0.0, 0.0),
+        Transform::from_xyz(x_small, 0.0, 0.0),
         RectShape { width, height },
         Impulse {
-            velocity: -1.,
+            velocity: v_small,
             mass: 100.,
         },
         BigBlock,
@@ -121,6 +128,11 @@ fn setup(
         TextColor(SLATE_50.into()),
         CollisionTextMarker(),
     ));
+
+    event_history.x_big.push(x_big);
+    event_history.v_big.push(v_big);
+    event_history.x_small.push(x_small);
+    event_history.v_small.push(v_small);
 }
 
 fn fixed_update(mut query: Query<(&mut Transform, &mut Impulse)>) {

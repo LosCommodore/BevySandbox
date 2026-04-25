@@ -17,7 +17,7 @@ pub struct EventHistory {
 pub fn gui_system(
     mut contexts: EguiContexts,
     mut local: Local<MyValue>,
-    //   mut event_history: ResMut<EventHistory>,
+    mut event_history: ResMut<EventHistory>,
 ) -> Result<()> {
     egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
         // Beispiel-Daten generieren
@@ -32,9 +32,18 @@ pub fn gui_system(
             })
             .collect();
 
+        let points: PlotPoints = (0..event_history.v_small.len())
+            .map(|i| {
+                [
+                    event_history.v_big[i] as f64,
+                    event_history.v_small[i] as f64,
+                ]
+            })
+            .collect();
+
         // Plot Widget anzeigen
         Plot::new("my_plot").view_aspect(2.0).show(ui, |plot_ui| {
-            plot_ui.line(Line::new("my_line", line_points));
+            plot_ui.line(Line::new("my_line", points));
         });
         //ui.label("world");
     });
