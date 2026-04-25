@@ -17,7 +17,7 @@ pub struct EventHistory {
 pub fn gui_system(
     mut contexts: EguiContexts,
     mut local: Local<MyValue>,
-    mut event_history: ResMut<EventHistory>,
+    event_history: ResMut<EventHistory>,
 ) -> Result<()> {
     egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
         // Beispiel-Daten generieren

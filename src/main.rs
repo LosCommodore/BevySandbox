@@ -55,40 +55,52 @@ fn setup(
 ) {
     commands.spawn(Camera2d);
 
-    let width = 50.;
-    let height = 100.;
+    let v_big = -1.;
+    let x_big = 300.;
+    let width_big: f32 = 200.;
+    let height_big: f32 = 200.;
 
-    let v_big = 0.;
-    let x_big = 0.;
+    // --------- BIG BLOCK ---------
 
     commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(width, height))),
-        MeshMaterial2d(materials.add(Color::linear_rgb(255., 0., 0.))),
-        Transform::from_xyz(x_big, 0.0, 0.0),
-        RectShape { width, height },
+        Mesh2d(meshes.add(Rectangle::new(width_big, height_big))),
+        MeshMaterial2d(materials.add(Color::linear_rgb(0., 255., 0.))),
+        Transform::from_xyz(x_big, height_big / 2., 0.0),
+        RectShape {
+            width: width_big,
+            height: height_big,
+        },
         Impulse {
             velocity: v_big,
+            mass: 100.,
+        },
+        BigBlock,
+        Collidable(),
+    ));
+
+    // --------- SMALL BLOCK ---------
+
+    let width_small = 50.;
+    let height_small = 50.;
+    let v_small = 0.;
+    let x_small = 0.;
+    commands.spawn((
+        Mesh2d(meshes.add(Rectangle::new(width_small, height_small))),
+        MeshMaterial2d(materials.add(Color::linear_rgb(255., 0., 0.))),
+        Transform::from_xyz(x_small, height_small / 2.0, 0.0),
+        RectShape {
+            width: width_small,
+            height: height_small,
+        },
+        Impulse {
+            velocity: v_small,
             mass: 1.,
         },
         SmallBlock,
         Collidable(),
     ));
 
-    let v_small = -1.;
-    let x_small = 300.;
-
-    commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(width, height))),
-        MeshMaterial2d(materials.add(Color::linear_rgb(0., 255., 0.))),
-        Transform::from_xyz(x_small, 0.0, 0.0),
-        RectShape { width, height },
-        Impulse {
-            velocity: v_small,
-            mass: 100.,
-        },
-        BigBlock,
-        Collidable(),
-    ));
+    // --------- WAlL ---------
 
     let wall_width = 100.;
     let wall_height = 400.;
@@ -113,6 +125,15 @@ fn setup(
         Collidable(),
     ));
 
+    // -- Event History
+
+    event_history.x_big.push(x_big);
+    event_history.v_big.push(v_big);
+    event_history.x_small.push(x_small);
+    event_history.v_small.push(v_small);
+
+    // --------- COLLISION COUNTER ---------
+
     commands.spawn((
         Node {
             width: percent(100.),
@@ -128,11 +149,6 @@ fn setup(
         TextColor(SLATE_50.into()),
         CollisionTextMarker(),
     ));
-
-    event_history.x_big.push(x_big);
-    event_history.v_big.push(v_big);
-    event_history.x_small.push(x_small);
-    event_history.v_small.push(v_small);
 }
 
 fn fixed_update(mut query: Query<(&mut Transform, &mut Impulse)>) {
