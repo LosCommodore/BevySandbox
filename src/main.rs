@@ -120,9 +120,24 @@ fn setup(
             },
             ..default()
         },
-        Transform::from_xyz(-300.0, 0.0, 1.0),
+        Transform::from_xyz(-300.0, 200.0, 1.0),
         Wall,
         Collidable(),
+    ));
+
+    // --------- WAlL ---------
+    commands.spawn((
+        Sprite {
+            custom_size: Some(Vec2::new(4000., 20.)),
+            image: asset_server.load("platformPack_tile007.png"),
+            image_mode: SpriteImageMode::Tiled {
+                tile_x: true,
+                tile_y: true,
+                stretch_value: 1.0,
+            },
+            ..default()
+        },
+        Transform::from_xyz(0., -10.0, 1.0),
     ));
 
     // -- Event History
