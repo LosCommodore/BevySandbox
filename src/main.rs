@@ -1,20 +1,16 @@
-use std::time::Duration;
-
-//use anyhow::Result;
+mod gui;
 use bevy::{
     color::palettes::tailwind::SLATE_50,
     math::bounding::{Aabb2d, IntersectsVolume},
     prelude::*,
     sprite_render::Wireframe2dPlugin,
 };
-use bevy_egui::{EguiContexts, egui};
-use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
-use egui_plot::{Line, Plot, PlotPoints};
+use gui::EventHistory;
+use std::time::Duration;
 
-#[derive(Default)]
-struct MyValue {
-    v: f64,
-}
+use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
+
+use crate::gui::gui_system;
 
 #[derive(Component, Default)]
 #[require(Transform)]
@@ -22,6 +18,15 @@ struct RectShape {
     width: f32,
     height: f32,
 }
+
+#[derive(Component)]
+struct SmallBlock;
+
+#[derive(Component)]
+struct BigBlock;
+
+#[derive(Component)]
+struct Wall;
 
 #[derive(Component, Default)]
 struct Impulse {
@@ -61,6 +66,7 @@ fn setup(
             velocity: 0.,
             mass: 1.,
         },
+        SmallBlock,
         Collidable(),
     ));
 
@@ -71,8 +77,9 @@ fn setup(
         RectShape { width, height },
         Impulse {
             velocity: -1.,
-            mass: 1.,
+            mass: 100.,
         },
+        BigBlock,
         Collidable(),
     ));
 
@@ -95,6 +102,7 @@ fn setup(
             ..default()
         },
         Transform::from_xyz(-300.0, 0.0, 1.0),
+        Wall,
         Collidable(),
     ));
 
@@ -123,7 +131,13 @@ fn fixed_update(mut query: Query<(&mut Transform, &mut Impulse)>) {
 
 fn check_collisions(
     mut commands: Commands,
-    mut query: Query<(&Transform, &RectShape, Option<&mut Impulse>), With<Collidable>>,
+    mut small_block: Single<(&Transform, &RectShape, &mut Impulse), With<SmallBlock>>,
+    mut big_block: Single<
+        (&Transform, &RectShape, &mut Impulse),
+        (With<BigBlock>, Without<Wall>, Without<SmallBlock>),
+    >,
+    wall: Single<(&Transform, &RectShape), (With<Wall>, Without<SmallBlock>, Without<BigBlock>)>,
+    mut event_history: ResMut<EventHistory>,
     mut counter: ResMut<CollisionCounter>,
 ) {
     fn bounding(t: &Transform, shape: &RectShape) -> Aabb2d {
@@ -138,64 +152,36 @@ fn check_collisions(
         Aabb2d { min, max }
     }
 
-    let mut iter = query.iter_combinations_mut();
-    while let Some([(transform, shape, impulse), (transform2, shape2, impulse2)]) =
-        iter.fetch_next()
-    {
-        let one = bounding(transform, &shape);
-        let two = bounding(transform2, &shape2);
-        if !one.intersects(&two) {
-            continue;
-        }
-        counter.0 += 1;
-        commands.trigger(CollionsHappended);
+    let bb_wall = bounding(&wall.0, &wall.1);
+    let bb_small = bounding(&small_block.0, &small_block.1);
+    let bb_big = bounding(&big_block.0, &big_block.1);
 
-        match (impulse, impulse2) {
-            (Some(mut impulse), Some(mut impulse2)) => {
-                let m1 = impulse.mass;
-                let m2 = impulse2.mass;
-                let v1 = impulse.velocity;
-                let v2 = impulse2.velocity;
+    if bb_wall.intersects(&bb_small) {
+        small_block.2.velocity *= -1.;
+    } else if bb_small.intersects(&bb_big) {
+        let impulse_small = &mut small_block.2;
+        let impulse_big = &mut big_block.2;
 
-                let new_v1 = (m1 * v1 + m2 * (2. * v2 - v1)) / (m1 + m2);
-                let new_v2 = (m2 * v2 + m1 * (2. * v1 - v2)) / (m1 + m2);
-                impulse.velocity = new_v1;
-                impulse2.velocity = new_v2;
-            }
+        let m1 = impulse_small.mass;
+        let m2 = impulse_big.mass;
+        let v1 = impulse_small.velocity;
+        let v2 = impulse_big.velocity;
 
-            (Some(mut impulse), None) => {
-                impulse.velocity *= -1.;
-            }
-            (None, Some(mut impulse)) => {
-                impulse.velocity *= -1.;
-            }
-
-            _ => (),
-        }
+        let new_v1 = (m1 * v1 + m2 * (2. * v2 - v1)) / (m1 + m2);
+        let new_v2 = (m2 * v2 + m1 * (2. * v1 - v2)) / (m1 + m2);
+        impulse_small.velocity = new_v1;
+        impulse_big.velocity = new_v2;
+    } else {
+        return;
     }
-}
 
-fn ui_example_system(mut contexts: EguiContexts, mut local: Local<MyValue>) -> Result<()> {
-    egui::Window::new("Hello").show(contexts.ctx_mut()?, |ui| {
-        // Beispiel-Daten generieren
-        ui.label("world");
-        ui.add(egui::widgets::DragValue::new(&mut local.v));
+    counter.0 += 1;
+    commands.trigger(CollionsHappended);
 
-        let n = 128;
-        let line_points: PlotPoints = (0..n)
-            .map(|i| {
-                let x = i as f64 * 0.1;
-                [x, x.sin()]
-            })
-            .collect();
-
-        // Plot Widget anzeigen
-        Plot::new("my_plot").view_aspect(2.0).show(ui, |plot_ui| {
-            plot_ui.line(Line::new("my_line", line_points));
-        });
-        //ui.label("world");
-    });
-    Ok(())
+    event_history.x_small.push(small_block.0.translation.x);
+    event_history.v_small.push(small_block.2.velocity);
+    event_history.x_big.push(big_block.0.translation.x);
+    event_history.v_big.push(big_block.2.velocity);
 }
 
 fn collision_text_update(
@@ -210,6 +196,7 @@ fn collision_text_update(
 fn main() {
     App::new()
         .init_resource::<CollisionCounter>()
+        .init_resource::<EventHistory>()
         .insert_resource(Time::<Fixed>::from_duration(Duration::from_secs_f64(
             1.0 / 100.0,
         )))
@@ -218,7 +205,7 @@ fn main() {
         .add_plugins(Wireframe2dPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, (fixed_update, check_collisions).chain())
-        .add_systems(EguiPrimaryContextPass, ui_example_system)
+        .add_systems(EguiPrimaryContextPass, gui_system)
         .add_systems(
             Update,
             collision_text_update.run_if(resource_changed::<CollisionCounter>),
