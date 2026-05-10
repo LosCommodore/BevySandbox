@@ -40,7 +40,7 @@ fn setup(mut commands: Commands) {
             AngularDamping(0.0), // Stops rotation decay
             RigidBody::Dynamic,
             Restitution::new(1.), // <--- Add this (0.0 = no bounce, 1.0 = perfect bounce)
-            //Collider::rectangle(10.0, 200.0),
+            Collider::rectangle(10.0, 200.0),
             Sprite {
                 color: Color::srgb_u8(255, 0, 0),
                 custom_size: Some(Vec2::new(10.0, 200.0)),
