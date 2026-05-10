@@ -1,9 +1,10 @@
 [workspace]
-members = ["block_collider", "bouncing_ball"]
+members = ["block_collider", "bouncing_ball", "reverse_pendulum"]
 resolver = "2"
 
 [workspace.dependencies]
 bevy = { version = "0.18.1", features = ["dynamic_linking"] }
+avian2d = "0.6"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
