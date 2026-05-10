@@ -17,7 +17,7 @@ fn setup(mut commands: Commands) {
     commands.spawn((
         RigidBody::Dynamic,
         Collider::circle(20.0),
-        Restitution::new(0.8), // <--- Add this (0.0 = no bounce, 1.0 = perfect bounce)
+        Restitution::new(1.), // <--- Add this (0.0 = no bounce, 1.0 = perfect bounce)
         Sprite {
             color: Color::srgb_u8(255, 0, 0),
             custom_size: Some(Vec2::new(40.0, 40.0)),
@@ -30,7 +30,7 @@ fn setup(mut commands: Commands) {
     commands.spawn((
         RigidBody::Static,
         Collider::rectangle(600.0, 20.0),
-        Restitution::new(0.2), // Optional: adding some to the ground as well
+        Restitution::new(1.), // Optional: adding some to the ground as well
         Sprite {
             color: Color::WHITE,
             custom_size: Some(Vec2::new(600.0, 20.0)),
