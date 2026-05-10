@@ -10,6 +10,9 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
+    // Increase gravity for faster bouncing (default is about -9.81, tune this value as needed)
+    commands.insert_resource(Gravity(Vec2::new(0.0, -100.0)));
+
     // Bouncing ball: 40 pixels diameter
     commands.spawn((
         RigidBody::Dynamic,
