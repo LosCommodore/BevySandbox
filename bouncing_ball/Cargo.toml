@@ -1,0 +1,8 @@
+[package]
+name = "bouncing_ball"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { workspace = true }
+avian2d = "0.6"

@@ -1,5 +1,5 @@
 [workspace]
-members = ["block_collider"]
+members = ["block_collider", "bouncing_ball"]
 resolver = "2"
 
 [workspace.dependencies]
