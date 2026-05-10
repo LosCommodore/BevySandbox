@@ -10,28 +10,28 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
-    // Ground: static rigid body with a rectangle collider
+    // Ground: 600 pixels wide, 20 pixels high
     commands.spawn((
         RigidBody::Static,
-        Collider::rectangle(10.0, 0.1),
+        Collider::rectangle(600.0, 20.0), // Match collider to sprite
         Sprite {
             color: Color::WHITE,
-            custom_size: Some(Vec2::new(10.0, 0.1)),
+            custom_size: Some(Vec2::new(600.0, 20.0)),
             ..default()
         },
-        Transform::from_xyz(0.0, -0.05, 0.0),
+        Transform::from_xyz(0.0, -100.0, 0.0),
     ));
 
-    // Bouncing ball: dynamic rigid body with a circle collider
+    // Bouncing ball: 40 pixels diameter
     commands.spawn((
         RigidBody::Dynamic,
-        Collider::circle(0.5),
+        Collider::circle(20.0), // Radius 20 = Diameter 40
         Sprite {
             color: Color::srgb_u8(255, 0, 0),
-            custom_size: Some(Vec2::new(1.0, 1.0)),
+            custom_size: Some(Vec2::new(40.0, 40.0)),
             ..default()
         },
-        Transform::from_xyz(0.0, 5.0, 0.0),
+        Transform::from_xyz(0.0, 200.0, 0.0),
     ));
 
     // Camera
